@@ -62,7 +62,7 @@ module rp_top #(
   wire [11:0] awid, wid, arid, bid, rid;
   wire [31:0] awaddr, wdata, araddr, rdata;
   wire [3:0]  awlen, arlen, wstrb;
-  wire [2:0]  awsize, arsize;
+  wire [1:0]  awsize, arsize;   // PS7 AxSIZE is 2 bits wide
   wire        awvalid, awready, wvalid, wready, wlast, bvalid, bready;
   wire        arvalid, arready, rvalid, rready, rlast;
   wire [1:0]  bresp, rresp;
@@ -92,7 +92,7 @@ module rp_top #(
     assign bready = 1'b1;  assign rready = 1'b1;
     assign awid = 0; assign wid = 0; assign arid = 0; assign awaddr = 0; assign araddr = 0;
     assign wdata = 0; assign awlen = 0; assign arlen = 0; assign wstrb = 0;
-    assign awsize = 3'b010; assign arsize = 3'b010; assign wlast = 1'b1;
+    assign awsize = 2'b10; assign arsize = 2'b10; assign wlast = 1'b1;
   end endgenerate
 
   // reset: PS fabric reset AND PLL lock, synchronised into clk

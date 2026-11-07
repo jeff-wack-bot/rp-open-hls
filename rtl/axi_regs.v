@@ -26,13 +26,13 @@ module axi_regs #(
   input  wire        rstn,
   // AXI3 slave
   input  wire [11:0] awid,   input wire [31:0] awaddr, input wire [3:0] awlen,
-  input  wire [2:0]  awsize, input wire        awvalid, output wire       awready,
+  input  wire [1:0]  awsize, input wire        awvalid, output wire       awready,
   input  wire [11:0] wid,    input wire [31:0] wdata,  input wire [3:0] wstrb,
   input  wire        wlast,  input wire        wvalid, output wire        wready,
   output reg  [11:0] bid,    output reg  [1:0] bresp,  output reg         bvalid,
   input  wire        bready,
   input  wire [11:0] arid,   input wire [31:0] araddr, input wire [3:0] arlen,
-  input  wire [2:0]  arsize, input wire        arvalid, output wire       arready,
+  input  wire [1:0]  arsize, input wire        arvalid, output wire       arready,
   output reg  [11:0] rid,    output reg  [31:0] rdata, output reg  [1:0] rresp,
   output reg         rlast,  output reg         rvalid, input wire        rready,
   // register file <-> design
@@ -65,7 +65,7 @@ module axi_regs #(
     end else begin
       if (awvalid && awready) begin
         aw_have <= 1'b1; aw_addr <= awaddr; bid <= awid;
-        aw_err  <= (awlen != 4'd0) || (awsize != 3'b010);
+        aw_err  <= (awlen != 4'd0) || (awsize != 2'b10);
       end
       if (wvalid && wready) begin
         w_have <= 1'b1; w_data <= wdata; w_strb <= wstrb;
@@ -110,7 +110,7 @@ module axi_regs #(
       rvalid <= 1'b0; rlast <= 1'b0; rresp <= 2'b00; rid <= 12'd0; rdata <= 32'd0;
     end else if (arvalid && arready) begin
       rvalid <= 1'b1; rlast <= 1'b1; rid <= arid; rdata <= rd_mux;
-      rresp  <= ((arlen != 4'd0) || (arsize != 3'b010)) ? 2'b10 : 2'b00;
+      rresp  <= ((arlen != 4'd0) || (arsize != 2'b10)) ? 2'b10 : 2'b00;
     end else if (rvalid && rready) begin
       rvalid <= 1'b0; rlast <= 1'b0;
     end
