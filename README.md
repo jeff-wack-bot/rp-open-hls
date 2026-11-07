@@ -63,7 +63,7 @@ Notes:
   which openXC7 CI still cross-checks against fpga-as.
 - The chipdb generator reports that 3.7 % of xc7z010 tile pips have no
   bitstream bits in prjxray-db, including 260 in `PSS2` (see risks).
-- verilator was installed but not used; all simulations are iverilog.
+- verilator 5.054 is used only for lint (`verilator --lint-only` on the Bambu kernel + wrapper: clean apart from a missing-timescale note). All simulations are iverilog.
 
 ## 2. HLS front end: tool comparison
 
