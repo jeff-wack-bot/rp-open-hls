@@ -14,7 +14,7 @@ SRCS=$(realpath "$@" | tr "\n" " ")
 PART=${PART:-xc7z010clg400-1}
 DIE=xc7z010
 STAGES=${STAGES:-synth pnr bit bin}
-YOSYS=${YOSYS:-yosys}
+YOSYS=${YOSYS:-$(command -v yosys || echo $OPT/deb/root/usr/bin/yosys)}
 OUT=$HERE/../build/$NAME
 mkdir -p "$OUT"; cd "$OUT"
 t() { local s=$SECONDS rc=0; "$@" || rc=$?; echo "elapsed $((SECONDS - s)) s" >&2; return $rc; }
