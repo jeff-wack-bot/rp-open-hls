@@ -17,13 +17,17 @@ STAGES=${STAGES:-synth pnr bit bin}
 YOSYS=${YOSYS:-$(command -v yosys || echo $OPT/deb/root/usr/bin/yosys)}
 OUT=$HERE/../build/$NAME
 mkdir -p "$OUT"; cd "$OUT"
+# Bambu memories: copy $readmemb init files next to the build; yosys also reads
+# the library default "array.mem" when it elaborates the generic module.
+for f in $SRCS; do cp -n "$(dirname "$f")"/*.mem . 2>/dev/null || true; done
+[ -n "$(ls *.mem 2>/dev/null)" ] && [ ! -f array.mem ] && cp "$(ls *.mem | head -1)" array.mem
 t() { local s=$SECONDS rc=0; "$@" || rc=$?; echo "elapsed $((SECONDS - s)) s" >&2; return $rc; }
 
 if [[ $STAGES == *synth* ]]; then
   echo "== yosys ($($YOSYS -V))"
   t $YOSYS -q -l yosys.log -p "read_verilog -sv ${DEFINES:-} $SRCS; synth_xilinx -flatten -abc9 -arch xc7 -top $TOP ${SYNTH_OPTS:-}; tee -o stat.txt stat; write_json $NAME.json" 2> time_synth.txt
   cat time_synth.txt
-  sed -n '/Number of cells/,$p' stat.txt | head -60
+  sed -n '/Number of cells/,$p' stat.txt | head -60 || true
 fi
 if [[ $STAGES == *pnr* ]]; then
   echo "== nextpnr"
@@ -32,8 +36,8 @@ if [[ $STAGES == *pnr* ]]; then
      --json $NAME.json "${XDCARG[@]}" -o fasm=$NAME.fasm --router router2 \
      --report report.json --log nextpnr.log ${PNR_OPTS:-} > /dev/null 2> time_pnr.txt || { tail -30 nextpnr.log; exit 1; }
   tail -1 time_pnr.txt
-  sed -n '/Device utilisation/,/^Info: *$/p' nextpnr.log | head -40
-  grep -E "Max frequency for clock|Max delay" nextpnr.log | tail -12
+  sed -n '/Device utilisation/,/^Info: *$/p' nextpnr.log | head -40 || true
+  grep -E "Max frequency for clock|Max delay" nextpnr.log | tail -12 || true
 fi
 if [[ $STAGES == *bit* ]]; then
   echo "== fasm2frames + xc7frames2bit"

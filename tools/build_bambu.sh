@@ -9,6 +9,11 @@ cd $OPT/src
 [ -d bambu ] || git clone --depth 1 -b $BAMBU_TAG https://github.com/ferrandi/PandA-bambu.git bambu
 cd bambu
 git submodule update --init --depth 1
+# aarch64 fix: with -m64 the host clang targets aarch64, which defines
+# __FP_FAST_FMA; musl's log/log2/pow then emit llvm.fma.f64, which Bambu's IR
+# dumper rejects ("Code generator does not support intrinsic llvm.fma.f64").
+grep -q U__FP_FAST_FMA etc/libbambu/CMakeLists.txt || \
+  sed -i 's|-DNO_RAISE_EXCEPTIONS")|-DNO_RAISE_EXCEPTIONS -U__FP_FAST_FMA -U__FP_FAST_FMAF")|' etc/libbambu/CMakeLists.txt
 export PATH=$LLVM/bin:$PATH
 if [ $STEP = all -o $STEP = configure ]; then
 cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release \
