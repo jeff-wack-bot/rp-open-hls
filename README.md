@@ -17,13 +17,13 @@ and checked by simulation and a bitstream round-trip. Nothing has run on
 hardware.
 
 Reproduce everything: `tools/build_all.sh` (toolchain, about 2.5 h of builds),
-then `tools/run_all.sh` (all tests, HLS, bitstreams and reports, ~10 min).
+then `tools/run_all.sh` (all tests, HLS, bitstreams and reports, ~11 min).
 
 ## Status by stage
 
 | # | Stage | Status |
 |---|---|---|
-| 1 | Toolchain (yosys, nextpnr-xilinx/openXC7 + xc7z010 chipdb, prjxray + db, fasm, bootgen, iverilog, verilator) | **done** (yosys 0.70 source build only partly done; the Debian 0.66 binary was used for every result) |
+| 1 | Toolchain (yosys, nextpnr-xilinx/openXC7 + xc7z010 chipdb, prjxray + db, fasm, bootgen, iverilog, verilator) | **done**: everything built in user space. The results below use the Debian yosys 0.66 binary; the source-built 0.70 was cross-checked on the HLS top |
 | 2 | Open HLS front end on aarch64 | **done**: PandA Bambu 2026.11 built from source with clang 19. XLS, Dynamatic and CIRCT were rejected (evidence below) |
 | 3 | Demo kernel in C + bit-exact RTL test | **done**: 1 section and the 2-section cascade, 0 mismatches over 4702 vectors each |
 | 4 | Red Pitaya top → bitstream | **done**, with 2 open-tool workarounds and 1 big caveat: nextpnr does not time DSP48 paths |
@@ -43,7 +43,7 @@ combination (`openXC7/toolchain-nix`, `nix/*.nix`).
 | micromamba + conda-forge env | python 3.12, cmake 4.4, boost 1.92, eigen, bison, flex, **verilator 5.054** | `micromamba create` | ~3 min |
 | clang/LLVM (for Bambu) | 19.1.7 (conda-forge `clangdev`/`llvmdev`) | `micromamba create` | ~3 min |
 | yosys | **0.66** Debian arm64 `.deb` unpacked with `apt-get download` + `dpkg -x` (`tools/get_yosys_deb.sh`) | binary | <1 min |
-| yosys (source) | v0.70, `tools/build_yosys.sh` | cmake/ninja -j3 | **not finished**: 1900/2224 objects after ~70 min, paused to give the CPU to Bambu. The slang SystemVerilog front end alone is ~155 heavy objects |
+| yosys (source) | **v0.70**, `tools/build_yosys.sh` (with the slang SV front end) | cmake/ninja -j3 | 107 min wall, including ~35 min paused while Bambu built; the slang objects are the slowest part |
 | nextpnr | openXC7/nextpnr `cf5f7a210fa2` (himbaechel, `-DHIMBAECHEL_UARCH=xilinx`) | `tools/build_nextpnr.sh` | 9 min (-j2) |
 | chipdb | `xilinx_gen.py --device xc7z010` + `bbasm` → `chipdb-xc7z010.bin` (21.8 MB) | same script | 2 min + 6 s |
 | prjxray-db | openXC7/prjxray-db `b12466df16ec` | git | – |
@@ -168,12 +168,13 @@ Results (`tools/run_all.sh` → `python3 tools/report.py build/top_*`):
 | Design | LUT | FF | CARRY4 | DSP48E1 | BRAM | nextpnr Fmax `clk` (target 125 MHz) | yosys / nextpnr / bitgen time |
 |---|---|---|---|---|---|---|---|
 | `top_bambu2` (HLS 2-section cascade) | 1571 | 2610 | 220 | 40 | 0 | 168.9 MHz* | 12 s / 77 s / 23 s |
+| `top_bambu2`, same flow with yosys **0.70** | 1546 | 2610 | 225 | 40 | 0 | 164.4 MHz* | 11 s / 74 s / 22 s |
 | `top_bambu1` (HLS 1 section) | 1013 | 1654 | 127 | 20 | 0 | 183.6 MHz* | 9 s / 26 s / 15 s |
 | `top_hand` (hand RTL 2 sections, 1 section/clock) | 1312 | 1320 | 134 | 20 | 0 | 167.2 MHz* | 23 s / 93 s / 44 s |
 | kernel only: Bambu biquad1 / biquad2 | 556 / 1116 | 702 / 1498 | 93 / 186 | 20 / 40 | 0 | – | – |
 | kernel only: hand RTL 1 / 2 sections | 977 / 1043 | 102 / 167 | 99 / 99 | 20 / 20 | 0 | – | – |
 
-LUT is the count of yosys LUT1–6 cells (xc7z010: 17,600). nextpnr's own
+Rows use yosys 0.66 unless noted. `tools/flow.sh` uses whichever `yosys` is first on PATH (0.70 once built), or `YOSYS=...`. LUT is the count of yosys LUT1–6 cells (xc7z010: 17,600). nextpnr's own
 `SLICE_LUTX` counts LUT5/LUT6 halves (35,200). The 250 MHz DAC clocks
 drive only ODDRs, so they have no FF-to-FF paths and nextpnr reports no Fmax
 for them. The final bitstreams are `build/top_bambu2/top_bambu2.bit` (2,083,848 B)
